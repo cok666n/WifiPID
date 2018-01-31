@@ -33,9 +33,9 @@ D7.value(0)
 D8 = Pin(15, Pin.OUT)
 D8.value(0)
 
-RELAY = D1 # 
-LED = D4 # led du wemos sur IO4 (donc PIN2 selon doc wemos)
-TIMER_INTERVAL=1000 #on compte les secondes
+RELAY = D1 # Heat relay is on D1 (PIN5)
+LED = D4 # Onboard led is on D4 (PIN2)
+TIMER_INTERVAL=1000 #1000msec interval to count seconds.
 PUBLISH_INTERVAL=30
 
 
@@ -43,11 +43,11 @@ PUBLISH_INTERVAL=30
 P_VAL=54.0
 I_VAL=60.0
 D_VAL=15.0
-PID_setPoint=20.0
-PID_running = False
-PID_cycle_s=10
-PIDSecondsCounter =0;
-SecondsCounter=0;
+PID_SETPOINT=20.0
+PID_RUNNING = False
+PID_CYCLE_S = 10
+PID_SECONDSCOUNTER = 0
+SECONDSCOUNTER = 0
 
 
 def setRelay(valueonoff):   
@@ -86,7 +86,7 @@ def readTemp():
 		
 # MQTT Callback
 def callback(topic, msg):
-    global PUBLISH_INTERVAL,PID_setPoint,P_VAL,I_VAL,D_VAL
+    global PUBLISH_INTERVAL,PID_SETPOINT,P_VAL,I_VAL,D_VAL
     target = topic.decode().split('/')[-1]
     print("Received MQTT Message for topic {} : {}".format(target,msg)) 
 
@@ -104,7 +104,7 @@ def callback(topic, msg):
             publish_temp()
     elif target == "SetPoint":
         if float(str(msg)) > 0 :
-            PID_setPoint = float(str(msg))
+            PID_SETPOINT = float(str(msg))
     elif target == "P":
         if float(str(msg)) > 0 :
             P_VAL = float(str(msg))
@@ -156,8 +156,8 @@ def publish_temp():
     ctemp = readTemp()
     client.publish(topic,str(ctemp))
     clientAda.publish(b"joey_teknome/feeds/wemos-temperature",str(ctemp))
-    clientAda.publish(b"joey_teknome/feeds/set-point",str(PID_setPoint))
-    print("PUB Temp: {} PUB SetPoint: {}".format(str(ctemp),str(PID_setPoint)))
+    clientAda.publish(b"joey_teknome/feeds/set-point",str(PID_SETPOINT))
+    print("PUB Temp: {} PUB SetPoint: {}".format(str(ctemp),str(PID_SETPOINT)))
 
 def publish_relay():
     topic = b"/" + machine_id + b"/sts/Relay"
@@ -166,7 +166,7 @@ def publish_relay():
 
 def publish_led():
     topic = b"/" + machine_id + b"/sts/Led"
-    if(LED.value()==1):
+    if LED.value()==1 :
         client.publish(topic, "0")
     else:
         client.publish(topic, "1")
@@ -196,31 +196,31 @@ def initTimer(iPeriod):
     tim.init(period=iPeriod, mode=Timer.PERIODIC, callback=lambda t:timer_tick())
 
 def timer_tick():
-    global SecondsCounter,PIDSecondsCounter
-    SecondsCounter += 1
+    global SECONDSCOUNTER,PID_SECONDSCOUNTER
+    SECONDSCOUNTER += 1
         
-    if (SecondsCounter >= PUBLISH_INTERVAL):
+    if (SECONDSCOUNTER >= PUBLISH_INTERVAL):
         publish_temp()
-        SecondsCounter=0
-    if(PID_running==True):
-        if(PIDSecondsCounter >= PID_cycle_s):
-            PIDSecondsCounter=0
+        SECONDSCOUNTER=0
+    if(PID_RUNNING==True):
+        if(PID_SECONDSCOUNTER >= PID_CYCLE_S):
+            PID_SECONDSCOUNTER=0
 
-        if(PIDSecondsCounter == 0):
-            pid.set_point = PID_setPoint
+        if(PID_SECONDSCOUNTER == 0):
+            pid.set_point = PID_SETPOINT
             pid.update()
             publish_pid()
         
-        pwm_check(PIDSecondsCounter)
-        PIDSecondsCounter+=1
+        pwm_check(PID_SECONDSCOUNTER)
+        PID_SECONDSCOUNTER+=1
 
 pwm_t_on = 0
 pwm_t_off = 0
 
 def pwm_setRate(irate):
     #PWM over a long cycle, min 1 sec activation
-    pwm_t_on = int (PID_cycle_s * irate)
-    pwm_t_off = PID_cycle_s - pwm_t_on
+    pwm_t_on = int (PID_CYCLE_S * irate)
+    pwm_t_off = PID_CYCLE_S - pwm_t_on
 
 def pwm_check(iSeconds):
     if (pwm_t_on >= 0):
@@ -233,16 +233,16 @@ def pwm_check(iSeconds):
             setRelay(0)
 
 def startPID():
-    if PID_running == False:
+    if PID_RUNNING == False:
         pwm_t_on = 0
         pwm_t_off = 0
-        PID_running = True
+        PID_RUNNING = True
 
 def stopPID():
-    if PID_running == True:
+    if PID_RUNNING == True:
         pwm_t_on = 0
         pwm_t_off = 0
-        PID_running = False   
+        PID_RUNNING = False   
 
 
 connect_and_subscribe()
