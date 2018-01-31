@@ -33,16 +33,16 @@ D7.value(0)
 D8 = Pin(15, Pin.OUT)
 D8.value(0)
 
-RELAY = D1 # relay du board sur IO1 (donc PIN5 selon doc wemos)
+RELAY = D1 # 
 LED = D4 # led du wemos sur IO4 (donc PIN2 selon doc wemos)
 TIMER_INTERVAL=1000 #on compte les secondes
-Publish_interval=30
+PUBLISH_INTERVAL=30
 
 
 #defaults
-P_value=54.
-I_value=60.
-D_value=15.
+P_VAL=54.0
+I_VAL=60.0
+D_VAL=15.0
 PID_setPoint=20.0
 PID_running = False
 PID_cycle_s=10
@@ -53,7 +53,7 @@ SecondsCounter=0;
 def setRelay(valueonoff):   
     RELAY.value(valueonoff)
     publish_relay()
-    
+
 
 #function de controle de la led onboard du wemos, logique inverse.
 def setLed(valueonoff):
@@ -63,7 +63,7 @@ def setLed(valueonoff):
         LED.value(1)
     publish_led()
 
-# lit la temperature de tous les capteurs trouvés mais retourne juste la derniere recue.
+# lit la temperature de tous les capteurs trouvï¿½s mais retourne juste la derniere recue.
 def readTemp():
     # the device is on GPIO4/D2
     dat = D2
@@ -86,7 +86,7 @@ def readTemp():
 		
 # MQTT Callback
 def callback(topic, msg):
-    global Publish_interval,PID_setPoint,P_value,I_value,D_value
+    global PUBLISH_INTERVAL,PID_setPoint,P_VAL,I_VAL,D_VAL
     target = topic.decode().split('/')[-1]
     print("Received MQTT Message for topic {} : {}".format(target,msg)) 
 
@@ -98,7 +98,7 @@ def callback(topic, msg):
         setLed(value)
     elif target == "Publish_interval":
         if int(msg) > 0 :
-            Publish_interval=int(msg)
+            PUBLISH_INTERVAL=int(msg)
     elif target == "Read_temp":
         if int(msg) > 0 :
             publish_temp()
@@ -107,16 +107,16 @@ def callback(topic, msg):
             PID_setPoint = float(str(msg))
     elif target == "P":
         if float(str(msg)) > 0 :
-            P_value = float(str(msg))
+            P_VAL = float(str(msg))
     elif target == "I":
         if float(str(msg)) > 0 :
-            I_value = float(str(msg))
+            I_VAL = float(str(msg))
     elif target == "D":
         if float(str(msg)) > 0 :
-            D_value = float(str(msg))
+            D_VAL= float(str(msg))
     elif target == "PID_Running":
         value = 1 if int(msg) > 0 else 0
-        if(value == 1):
+        if value == 1 :
             startPID()
         else:
             stopPID()
@@ -199,7 +199,7 @@ def timer_tick():
     global SecondsCounter,PIDSecondsCounter
     SecondsCounter += 1
         
-    if (SecondsCounter >= Publish_interval):
+    if (SecondsCounter >= PUBLISH_INTERVAL):
         publish_temp()
         SecondsCounter=0
     if(PID_running==True):
@@ -236,31 +236,30 @@ def startPID():
     if PID_running == False:
         pwm_t_on = 0
         pwm_t_off = 0
-        PID_running = True;
+        PID_running = True
 
 def stopPID():
     if PID_running == True:
         pwm_t_on = 0
         pwm_t_off = 0
-        PID_running = False;   
+        PID_running = False   
 
 
 connect_and_subscribe()
 connect_and_subscribe_adafruit()
 
-pid = PID(readTemp,pwm_setRate,P=P_value,I=I_value,D=D_value)
+pid = PID(readTemp,pwm_setRate,P=P_VAL,I=I_VAL,D=D_VAL)
 
 publish_sts()
 
 
 global tim
-tim = Timer(-1)  
+tim = Timer(-1)
 initTimer(TIMER_INTERVAL)
-
-
 
 while 1:
     client.wait_msg()
-    
+
+
 client.disconnect()
 clientAda.disconnect()
