@@ -8,10 +8,13 @@ from machine import Timer
 import onewire, ds18x20
 import network
 from PID import PID
+import urandom
 
 #define a couple constants
 machine_id = binascii.hexlify(machine.unique_id())
+client_id= machine_id + str(urandom.getrandbits(16))
 print(b"Machine ID: {}".format(machine_id))
+print(b"Client ID: {}".format(client_id))
 
 #set wemos D1 pin numbers for easier handling
 D0 = Pin(16, Pin.OUT)
@@ -127,7 +130,7 @@ def callback(topic, msg):
 def connect_and_subscribe():
     global client
     print('Connecting to {} as user {} with password {}'.format(config.broker, config.user, config.password))
-    client = MQTTClient(machine_id, config.broker, user=config.user, password=config.password)
+    client = MQTTClient(client_id, config.broker, user=config.user, password=config.password)
     client.set_callback(callback)
     if not client.connect(clean_session=False):
         print("Created new session to {}".format(config.broker))
