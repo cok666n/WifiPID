@@ -43,19 +43,16 @@ PUBLISH_INTERVAL=30
 
 
 #defaults
-P_VAL=54.0
-I_VAL=60.0
-D_VAL=15.0
-PID_SETPOINT=20.0
 PID_RUNNING = False
 PID_CYCLE_S = 10
 PID_SECONDSCOUNTER = 0
 SECONDSCOUNTER = 0
 
 
-def setRelay(valueonoff):   
-    RELAY.value(valueonoff)
-    publish_relay()
+def setRelay(valueonoff):
+    if RELAY.value() != valueonoff :
+        RELAY.value(valueonoff)
+        publish_relay()
 
 
 #function de controle de la led onboard du wemos, logique inverse.
@@ -89,42 +86,50 @@ def readTemp():
 		
 # MQTT Callback
 def callback(topic, msg):
-    global PUBLISH_INTERVAL,PID_SETPOINT,P_VAL,I_VAL,D_VAL
+    global PUBLISH_INTERVAL,pid
     target = topic.decode().split('/')[-1]
+    message = msg.decode()
     print("Received MQTT Message for topic {} : {}".format(target,msg)) 
 
-    if target == "Relay":
-        value = 1 if int(msg) > 0 else 0
-        setRelay(value)
-    elif target == "Led":
-        value = 1 if int(msg) > 0 else 0
-        setLed(value)
-    elif target == "Publish_interval":
-        if int(msg) > 0 :
-            PUBLISH_INTERVAL=int(msg)
-    elif target == "Read_temp":
-        if int(msg) > 0 :
-            publish_temp()
-    elif target == "SetPoint":
-        if float(str(msg)) > 0 :
-            PID_SETPOINT = float(str(msg))
-    elif target == "P":
-        if float(str(msg)) > 0 :
-            P_VAL = float(str(msg))
-    elif target == "I":
-        if float(str(msg)) > 0 :
-            I_VAL = float(str(msg))
-    elif target == "D":
-        if float(str(msg)) > 0 :
-            D_VAL= float(str(msg))
-    elif target == "PID_Running":
-        value = 1 if int(msg) > 0 else 0
-        if value == 1 :
-            startPID()
+    try:       
+        if target == "Relay":
+            value = 1 if int(msg) > 0 else 0
+            setRelay(value)
+        elif target == "Led":
+            value = 1 if int(msg) > 0 else 0
+            setLed(value)
+        elif target == "Publish_interval":
+            if int(message) > 0 :
+                PUBLISH_INTERVAL=int(msg)
+        elif target == "Read_temp":
+            if int(message) > 0 :
+                publish_temp()
+        elif target == "SetPoint":
+            if float(message) > 0 :
+                pid.set_point = float(message)
+                publish_pid()
+        elif target == "P":
+            if float(message) > 0 :
+                pid.Kp = float(message)
+                publish_pid()
+        elif target == "I":
+            if float(message) > 0 :
+                pid.Ki = float(message)
+                publish_pid()
+        elif target == "D":
+            if float(message) > 0 :
+                pid.Kd= float(message)
+                publish_pid()
+        elif target == "PID_Running":
+            value = 1 if int(message) > 0 else 0
+            if value == 1 :
+                startPID()
+            else:
+                stopPID()
         else:
-            stopPID()
-    else:
-        print("Unable to process MQTT request")
+            print("Unable to process MQTT request")
+    except Exception as e:
+        print("Exception processing MQTT", str(e))
 
 # command and status, custom MQTT broker.
 def connect_and_subscribe():
@@ -159,8 +164,8 @@ def publish_temp():
     ctemp = readTemp()
     client.publish(topic,str(ctemp))
     clientAda.publish(b"joey_teknome/feeds/wemos-temperature",str(ctemp))
-    clientAda.publish(b"joey_teknome/feeds/set-point",str(PID_SETPOINT))
-    print("PUB Temp: {} PUB SetPoint: {}".format(str(ctemp),str(PID_SETPOINT)))
+    clientAda.publish(b"joey_teknome/feeds/set-point",str(pid.set_point))
+    print("PUB Temp: {} PUB SetPoint: {}".format(str(ctemp),str(pid.set_point)))
 
 def publish_relay():
     topic = b"/" + machine_id + b"/sts/Relay"
@@ -185,15 +190,17 @@ def publish_ip():
 def publish_pid():
     global pid
     topic = b"/" + machine_id + b"/sts/P"
-    client.publish(topic,str(pid.P_value))
+    client.publish(topic,str(pid.Kp))
     topic = b"/" + machine_id + b"/sts/I"
-    client.publish(topic, str(pid.I_value))
+    client.publish(topic, str(pid.Ki))
     topic = b"/" + machine_id + b"/sts/D"
-    client.publish(topic, str(pid.D_value))
+    client.publish(topic, str(pid.Kd))
     topic = b"/" + machine_id + b"/sts/PID_Output"
     client.publish(topic, str(pid.output))
+    topic = b"/" + machine_id + b"/sts/SetPoint"
+    client.publish(topic, str(pid.set_point))
 
-    print("PUB P:{} I:{} D:{} O:{}".format(str(pid.P_value),str(pid.I_value),str(pid.D_value),str(pid.output)))
+    print("PUB P:{} I:{} D:{} O:{}".format(str(pid.Kp),str(pid.Ki),str(pid.Kd),str(pid.output)))
 
 def initTimer(iPeriod):
     tim.init(period=iPeriod, mode=Timer.PERIODIC, callback=lambda t:timer_tick())
@@ -210,7 +217,6 @@ def timer_tick():
             PID_SECONDSCOUNTER=0
 
         if(PID_SECONDSCOUNTER == 0):
-            pid.set_point = PID_SETPOINT
             pid.update()
             publish_pid()
         
@@ -221,6 +227,7 @@ pwm_t_on = 0
 pwm_t_off = 0
 
 def pwm_setRate(irate):
+    global pwm_t_on,pwm_t_off
     #PWM over a long cycle, min 1 sec activation
     pwm_t_on = int (PID_CYCLE_S * irate)
     pwm_t_off = PID_CYCLE_S - pwm_t_on
@@ -236,12 +243,14 @@ def pwm_check(iSeconds):
             setRelay(0)
 
 def startPID():
+    global PID_RUNNING,pwm_t_on,pwm_t_off
     if PID_RUNNING == False:
         pwm_t_on = 0
         pwm_t_off = 0
         PID_RUNNING = True
 
 def stopPID():
+    global PID_RUNNING,pwm_t_on,pwm_t_off
     if PID_RUNNING == True:
         pwm_t_on = 0
         pwm_t_off = 0
@@ -251,7 +260,7 @@ def stopPID():
 connect_and_subscribe()
 connect_and_subscribe_adafruit()
 
-pid = PID(readTemp,pwm_setRate,P=P_VAL,I=I_VAL,D=D_VAL)
+pid = PID(readTemp,pwm_setRate,P=54.0,I=60.0,D=15.0)
 
 publish_sts()
 
