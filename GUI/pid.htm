@@ -4,17 +4,22 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
  	<link rel="shortcut icon" href="webIcon.ico" />
-	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-    <title></title>
+	<link rel="stylesheet" href="css/bootstrap.min.css">
+    <title>WifiPID</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
     <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" type="text/javascript"></script>
+	<script type="text/javascript" src="JS/jquery.flot.min.js"></script>
+    <script type="text/javascript" src="JS/jquery.flot.time.min.js"></script>
+    <script type="text/javascript" src="JS/jquery.flot.navigate.min.js"></script>
+	<script type="text/javascript" src="JS/jquery.flot.resize.min.js"></script>
+	<script type="text/javascript" src="moment.min.js"></script>
 	<script type="text/javascript">
-		var wemosID = "45bdf600"
+		var wemosID = "45bdf600"; //Todo: make configurable?
         var dataSet = [];
         // Create a client instance
         var clientID = "myclientid_" + parseInt(Math.random() * 100, 10);
-        client = new Paho.MQTT.Client("mqtt.teknome.com", Number("8083"), clientID);
+        client = new Paho.MQTT.Client("mqtt.teknome.net", Number("8083"), clientID);
         console.log("clientID" + clientID );
 
         // set callback handlers
@@ -24,8 +29,8 @@
         // connect the client
         client.connect({
             userName: "",
-            password: "",
-            useSSL: false,
+            password: "$W",
+            useSSL: true,
             onSuccess: onConnect           
         });
 
@@ -46,10 +51,57 @@
 
         // called when a message arrives
         function onMessageArrived(message) {
+			var dateString = moment(new Date()).format('YYYYMMDD HH:mm:ss')
             console.log("onMessageArrived: From: " + message.destinationName + " Message: " + message.payloadString);
-
             var receivedData = JSON.parse(message.payloadString);
 
+			/*Subjects are /machine/sts/VAR */
+			var subject = message.destinationName.split('/')[2]
+
+            if (subject == "Temp") {
+				$("#current-temp").val(receivedData);
+				$("#current-temp-date").val(dateString);
+			}
+			else if (subject == "SetPoint") {
+				$("#set-point").val(receivedData);
+				$("#set-point-date").val(dateString);
+			}
+			else if (subject == "PID_Running") {
+				$("#pid-running").val(receivedData);
+				$("#pid-running-date").val(dateString);
+				
+				if( receivedData =="True" && $("#btnStartStop").hasClass("btn-success"))
+				{
+					$("#btnStartStop").removeClass("btn-success").addClass("btn-danger");
+					$("#btnStartStop").val("Stop");
+				}
+				else if( receivedData =="False" && $("#btnStartStop").hasClass("btn-danger"))
+				{
+					$("#btnStartStop").removeClass("btn-danger").addClass("btn-success");
+					$("#btnStartStop").val("Start");
+				}
+			}
+			else if (subject == "PID_Ouput") {
+				$("#pid-pwm").val(receivedData);
+				$("#pid-pwm-date").val(dateString);
+			}
+			else if (subject == "Relay") { //Todo change to heat and cool on the FW
+				$("#pid-heating").val(receivedData);
+				$("#pid-heating-date").val(dateString);
+			}
+			else if (subject == "Cooling") {
+				$("#pid-cooling").val(receivedData);
+				$("#pid-cooling-date").val(dateString);
+			}
+			else if (subject == "P") {
+				$("#btnP").val(receivedData);
+			}
+			else if (subject == "I") {
+				$("#btnI").val(receivedData);
+			}
+			else if (subject == "D") {
+				$("#btnD").val(receivedData);
+			}
         }
 		
 		/*Doc ready*/
@@ -68,8 +120,6 @@
 					$("#btnStartStop").removeClass("btn-danger").addClass("btn-success");
 					$("#btnStartStop").val("Start");
 				}
-               
-                reqTakePige();
             });
 
 		});
@@ -79,16 +129,10 @@
     <style>
 .con-section{
 	margin-top: 15px;
-	margin-bottom: 15px;
-	border: 1px black solid;
+	margin-bottom: 15px;	
 }
-		.section-col{
-			font-weight: bold;
-			background-color:darkgrey;
-		}	
 		.header-col{
-			font-weight: bold;
-			background-color:gainsboro;
+			/*background-color:gainsboro;*/
 			text-align: center;
 		}
 		.temp-display
@@ -99,57 +143,88 @@
 			text-align: center;		
 			vertical-align: middle;		
 		}
-		.settings, .status
+		.date-display
+		{
+			font-size: small;
+			text-align: center;		
+			vertical-align: middle;		
+		}
+		 .status
 		{
 			line-height: 60px !important; 
 			font-size: large;
 			text-align: center;		
 			vertical-align: middle;	
 		}
+		.settings
+		{
+			font-size: large;
+			text-align: center;		
+			vertical-align: middle;	
+			line-height: 40px;
+		}
 
 	.settings input{
 		width: 100%;
 	}
+
+  .dot {
+  height: 25px;
+  width: 25px;
+  border-radius: 50%;
+  display: inline-block;
+	}
+
     </style>
 </head>
-<body>
-    <form id="form1" runat="server">
-		<nav class="navbar navbar-light bg-light">
-			<a class="navbar-brand" href="#">
+<body class="">
+    <form id="form1" runat="server" >
+		<nav class="navbar navbar-dark bg-primary ">
+			<a class="navbar-brand tex" href="#">
 			  <img src="icon.png" width="30" height="30" class="d-inline-block align-top" alt="">
 			  WifiPID
 			</a>
 		  </nav>
-		<div class="container con-section">
-			<div class="row ">
+		<div class="container con-section  border border-secondary rounded">
+			<div class="row bg-primary">
 				<div class="col-12 section-col">Status</div>
 			</div>
-			<div class="row">
+			<div class="row bg-secondary">
 				<div class="col-6 header-col">Current Temperature</div>
 				<div class="col-6 header-col">Set Point</div>
 			</div>
 			<div class="row">
-				<div class="col-6 temp-display" ><span id="current-temp" >0.00</span></div>
-				<div class="col-6 temp-display"><span id="set-point" >0.00</span></div>
+				<div class="col-6 temp-display" ><span id="current-temp" >-</span></div>
+				<div class="col-6 temp-display"><span id="set-point" >-</span></div>
 			</div>
 			<div class="row">
+				<div class="col-6 date-display" ><span id="current-temp-date" >yyyy-MM-dd HH:mm:ss</span></div>
+				<div class="col-6 date-display"><span id="set-point-date" >yyyy-MM-dd HH:mm:ss</span></div>
+			</div>
+			<div class="row bg-secondary">
 					<div class="col-3 header-col">Running</div>
 					<div class="col-3 header-col">PWM</div>
 					<div class="col-3 header-col">Heating</div>
 					<div class="col-3 header-col">Cooling</div>
 			</div>
 			<div class="row">
-					<div class="col-3 status">Yes</div>
-					<div class="col-3 status">75%</div>
-					<div class="col-3 status">ON</div>
-					<div class="col-3 status">OFF</div>
-			</div>
-			</div>
-			<div class="container con-section">
-			<div class="row ">
-					<div class="col-12 section-col">Settings</div>
+					<div class="col-3 status"><span id="pid-running">-</span></div>
+					<div class="col-3 status"><span id="pid-pwm">-</span>%</div>
+					<div class="col-3 status"><span id="pid-heating" >-</span></div>
+					<div class="col-3 status"><span id="pid-cooling" >-</span></div>
 			</div>
 			<div class="row">
+				<div class="col-3 date-display d-none d-sm-block"><span id="pid-running-date">yyyy-MM-dd HH:mm:ss</span></div>
+				<div class="col-3 date-display d-none d-sm-block"><span id="pid-pwm-date">yyyy-MM-dd HH:mm:ss</span></div>
+				<div class="col-3 date-display d-none d-sm-block"><span id="pid-heating-date">yyyy-MM-dd HH:mm:ss</span></div>
+				<div class="col-3 date-display d-none d-sm-block"><span id="pid-cooling-date">yyyy-MM-dd HH:mm:ss</span></div>
+		</div>
+			</div>
+			<div class="container con-section  border border-secondary rounded">
+			<div class="row bg-primary">
+					<div class="col-12 section-col">Settings</div>
+			</div>
+			<div class="row bg-secondary border border-secondary ">
 				<div class="col-3 header-col">Start/Stop</div>
 				<div class="col-3 header-col">P</div>
 				<div class="col-3 header-col">I</div>
@@ -157,14 +232,22 @@
 			</div>
 			<div class="row settings">
 					<div class="col-3 setting-cell"><input id="btnStartStop" type="button" class="btn btn-success" value="Start"></div>
-					<div class="col-3 setting-cell"><input type="button" class="btn btn-secondary" value="P"></div>
-					<div class="col-3 setting-cell"><input type="button" class="btn btn-secondary" value="I"></div>
-					<div class="col-3 setting-cell"><input type="button" class="btn btn-secondary" value="D"></div>
+					<div class="col-3 setting-cell"><input type="button" id="btnP" class="btn" value="0"></div>
+					<div class="col-3 setting-cell"><input type="button" id="btnI" class="btn" value="0"></div>
+					<div class="col-3 setting-cell"><input type="button" id="btnD" class="btn" value="0"></div>
+					<br/>
 			</div>
 		</div>
-		<div class="container con-section">
-			<div class="row ">
+		<div class="container con-section border border-secondary rounded">
+			<div class="row bg-primary">
 					<div class="col-12 section-col">Stats</div>
+				</div>
+					<div class="row">
+					<div id="graphDivContainer" class="col-12">
+						<div id="graphDiv"></div>
+						<span ID="lblAucunDonnees"> Aucune donnée disponible</span>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>

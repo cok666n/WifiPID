@@ -199,6 +199,8 @@ def publish_pid():
     client.publish(topic, str(pid.output))
     topic = b"/" + machine_id + b"/sts/SetPoint"
     client.publish(topic, str(pid.set_point))
+    topic = b"/" + machine_id + b"/sts/PID_Running"
+    client.publish(topic, str(PID_RUNNING))
 
     print("PUB P:{} I:{} D:{} O:{}".format(str(pid.Kp),str(pid.Ki),str(pid.Kd),str(pid.output)))
 
