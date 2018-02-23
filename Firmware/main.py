@@ -255,6 +255,7 @@ def stopPID():
         pwm_t_on = 0
         pwm_t_off = 0
         PID_RUNNING = False   
+        setRelay(0)
 
 
 connect_and_subscribe()
