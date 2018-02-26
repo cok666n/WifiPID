@@ -185,6 +185,27 @@
                 }
             });
 
+			$("<div id='tooltip'></div>").css({
+                position: "absolute",
+                display: "none",
+                border: "1px solid #fdd",
+                padding: "2px",
+                opacity: 0.80
+			}).appendTo("body");
+			
+			$("#graphDiv").bind("plothover", function (event, pos, item) {
+                if (item) {
+					console.log("hover");
+                    var x = item.datapoint[0].toFixed(2),
+                        y = item.datapoint[1].toFixed(2);
+
+                    $("#tooltip").html(moment(item.datapoint[0]).utcOffset(-5).format("YYYY-MM-DD HH:mm:ss") + ": " + y + "C")
+                        .css({ top: item.pageY + 5, left: item.pageX + 5 })
+                        .fadeIn(200);
+                } else {
+                    $("#tooltip").hide();
+                }
+            });
 		});
 
     </script>
@@ -308,7 +329,7 @@
 		</div>
 		<div class="container con-section border border-secondary rounded">
 			<div class="row bg-primary">
-					<div class="col-12 section-col">Stats</div>
+					<div class="col-12 section-col" title="1000 last points from AdafruitIO feed api">Stats</div>
 				</div>
 					<div class="row">
 					<div id="graphDivContainer" class="col-12">
@@ -330,6 +351,8 @@
 			</div>
 			</div>
 		  </footer>
+
+		  
 </body>
 </html>
 
