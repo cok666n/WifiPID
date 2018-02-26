@@ -1,0 +1,6 @@
+{
+    "mqttHost": "test.com",
+    "mqttPort": "8083",
+    "mqttUsername": "jimmy",
+    "mqttPassword": "page"
+}

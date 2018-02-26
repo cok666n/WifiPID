@@ -13,13 +13,14 @@
     <script type="text/javascript" src="JS/jquery.flot.time.min.js"></script>
     <script type="text/javascript" src="JS/jquery.flot.navigate.min.js"></script>
 	<script type="text/javascript" src="JS/jquery.flot.resize.min.js"></script>
-	<script type="text/javascript" src="moment.min.js"></script>
+	<script type="text/javascript" src="JS/moment.min.js"></script>
 	<script type="text/javascript">
 		var wemosID = "45bdf600"; //Todo: make configurable?
+		var CONFIG = require('./config.json');
         var dataSet = [];
         // Create a client instance
         var clientID = "myclientid_" + parseInt(Math.random() * 100, 10);
-        client = new Paho.MQTT.Client("mqtt.teknome.net", Number("8083"), clientID);
+        client = new Paho.MQTT.Client(CONFIG.mqttHost, Number(CONFIG.mqttPort), clientID);
         console.log("clientID" + clientID );
 
         // set callback handlers
@@ -28,8 +29,8 @@
 
         // connect the client
         client.connect({
-            userName: "",
-            password: "$W",
+            userName: CONFIG.mqttUsername,
+            password: CONFIG.mqttPassword,
             useSSL: true,
             onSuccess: onConnect           
         });
@@ -51,24 +52,24 @@
 
         // called when a message arrives
         function onMessageArrived(message) {
-			var dateString = moment(new Date()).format('YYYYMMDD HH:mm:ss')
+			var dateString = moment(new Date()).format('YYYY-MM-DD HH:mm:ss')
             console.log("onMessageArrived: From: " + message.destinationName + " Message: " + message.payloadString);
-            var receivedData = JSON.parse(message.payloadString);
+            var receivedData = message.payloadString;
 
 			/*Subjects are /machine/sts/VAR */
-			var subject = message.destinationName.split('/')[2]
+			var subject = message.destinationName.split('/')[3]
 
             if (subject == "Temp") {
-				$("#current-temp").val(receivedData);
-				$("#current-temp-date").val(dateString);
+				$("#current-temp").html(receivedData);
+				$("#current-temp-date").html(dateString);
 			}
 			else if (subject == "SetPoint") {
-				$("#set-point").val(receivedData);
-				$("#set-point-date").val(dateString);
+				$("#set-point").html(receivedData);
+				$("#set-point-date").html(dateString);
 			}
 			else if (subject == "PID_Running") {
-				$("#pid-running").val(receivedData);
-				$("#pid-running-date").val(dateString);
+				$("#pid-running").html(receivedData);
+				$("#pid-running-date").html(dateString);
 				
 				if( receivedData =="True" && $("#btnStartStop").hasClass("btn-success"))
 				{
@@ -82,16 +83,16 @@
 				}
 			}
 			else if (subject == "PID_Ouput") {
-				$("#pid-pwm").val(receivedData);
-				$("#pid-pwm-date").val(dateString);
+				$("#pid-pwm").html(receivedData);
+				$("#pid-pwm-date").html(dateString);
 			}
 			else if (subject == "Relay") { //Todo change to heat and cool on the FW
-				$("#pid-heating").val(receivedData);
-				$("#pid-heating-date").val(dateString);
+				$("#pid-heating").html(receivedData);
+				$("#pid-heating-date").html(dateString);
 			}
 			else if (subject == "Cooling") {
-				$("#pid-cooling").val(receivedData);
-				$("#pid-cooling-date").val(dateString);
+				$("#pid-cooling").html(receivedData);
+				$("#pid-cooling-date").html(dateString);
 			}
 			else if (subject == "P") {
 				$("#btnP").val(receivedData);
@@ -112,13 +113,13 @@
 				{
 					//todo: start
 					$("#btnStartStop").removeClass("btn-success").addClass("btn-danger");
-					$("#btnStartStop").val("Stop");
+					$("#btnStartStop").html("Stop");
 				}
 				else
 				{
 					//todo: stop
 					$("#btnStartStop").removeClass("btn-danger").addClass("btn-success");
-					$("#btnStartStop").val("Start");
+					$("#btnStartStop").html("Start");
 				}
             });
 
@@ -178,7 +179,8 @@
     </style>
 </head>
 <body class="">
-    <form id="form1" runat="server" >
+		<main>
+	<form id="form1" runat="server" >
 		<nav class="navbar navbar-dark bg-primary ">
 			<a class="navbar-brand tex" href="#">
 			  <img src="icon.png" width="30" height="30" class="d-inline-block align-top" alt="">
@@ -251,7 +253,13 @@
 			</div>
 		</div>
 	</div>
-    </form>
+	</form>
+	</main>
+    <footer class="footer">
+			<div class="container">
+			  <span class="text-muted">Joey Caron - 2018</span>
+			</div>
+		  </footer>
 </body>
 </html>
 
