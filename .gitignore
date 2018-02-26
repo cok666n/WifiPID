@@ -103,3 +103,5 @@ Firmware/config.py
 Firmware/.vscode/settings.json
 
 GUI/config\.json
+
+GUI/config\.js
