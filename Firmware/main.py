@@ -12,7 +12,7 @@ import urandom
 
 #define a couple constants
 machine_id = binascii.hexlify(machine.unique_id())
-client_id= machine_id + str(urandom.getrandbits(16))
+client_id= machine_id + str(urandom.getrandbits(24))
 print(b"Machine ID: {}".format(machine_id))
 print(b"Client ID: {}".format(client_id))
 
