@@ -197,6 +197,7 @@ def publish_pid():
     client.publish(topic, str(pid.Kd))
     topic = b"/" + machine_id + b"/sts/PID_Output"
     client.publish(topic, str(pid.output))
+    clientAda.publish(b"joey_teknome/feeds/pwm-output",str(pid.output))
     topic = b"/" + machine_id + b"/sts/SetPoint"
     client.publish(topic, str(pid.set_point))
     topic = b"/" + machine_id + b"/sts/PID_Running"
