@@ -14,9 +14,11 @@
     <script type="text/javascript" src="JS/jquery.flot.navigate.min.js"></script>
 	<script type="text/javascript" src="JS/jquery.flot.resize.min.js"></script>
 	<script type="text/javascript" src="JS/moment.min.js"></script>
+	<script type="text/javascript" src="JS/bootbox.min.js"></script>
 	<script src="config.js"></script>
 	<script type="text/javascript">
-		var wemosID = "45bdf600"; //Todo: make configurable?
+		//var wemosID = "45bdf600"; //Todo: make configurable?
+		var wemosID = "10f91700";
         var dataSet = [];
         // Create a client instance
         var clientID = "myclientid_" + parseInt(Math.random() * 100, 10);
@@ -62,6 +64,7 @@
             if (subject == "Temp") {
 				$("#current-temp").html(receivedData);
 				$("#current-temp-date").html(dateString);
+				getHistory();
 			}
 			else if (subject == "SetPoint") {
 				$("#set-point").html(receivedData);
@@ -82,7 +85,7 @@
 					$("#btnStartStop").val("Start");
 				}
 			}
-			else if (subject == "PID_Ouput") {
+			else if (subject == "PID_Output") {
 				$("#pid-pwm").html(receivedData);
 				$("#pid-pwm-date").html(dateString);
 			}
@@ -104,29 +107,36 @@
 				$("#btnD").val(receivedData);
 			}
         }
-		
-		/*Doc ready*/
-		$(function () {
-			
-			$("#btnStartStop").click(function () {
-				if($("#btnStartStop").hasClass("btn-success"))
-				{
-					//todo: start
-					$("#btnStartStop").removeClass("btn-success").addClass("btn-danger");
-					$("#btnStartStop").html("Stop");
-				}
-				else
-				{
-					//todo: stop
-					$("#btnStartStop").removeClass("btn-danger").addClass("btn-success");
-					$("#btnStartStop").html("Start");
-				}
-            });
 
+		function sendCMD(topic,value)
+		{
+            //Envoi la request
+            var message = new Paho.MQTT.Message(value);
+            message.destinationName = "/" + wemosID + "/cmd/"+topic
+            
+			client.send(message);
+            
+			console.log("Sent request: " + message.payloadString + " to topic: " + message.destinationName);        
+		}
+
+		function showSendCMDDialog(cmd, currentvalue)
+		{
+			bootbox.prompt({title: "Enter new value ",
+			inputType: 'number', 
+			size: "small",
+			callback: function(result){ 
+				sendCMD(cmd,result);
+			 }
+			})
+			
+		}
+
+		function getHistory(){
+			dataSet=[];
 			//Get data from adafruit
             $.ajax({
                 type: "get",
-                data: "{'start_time': '" + "2017-02-20T00:00:00" +"' }",
+                data: {"start_time":  moment().add(-1,'hours').format() },
                 url: ' https://io.adafruit.com/api/v2/joey_teknome/feeds/wemos-temperature/data',
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
@@ -185,6 +195,46 @@
                 }
             });
 
+		}
+		
+		/*Doc ready*/
+		$(function () {
+			
+			$("#btnStartStop").click(function () {
+				if($("#btnStartStop").hasClass("btn-success"))
+				{
+					//Send start CMD
+					sendCMD("PID_Running","1")
+					$("#btnStartStop").removeClass("btn-success").addClass("btn-danger");
+					$("#btnStartStop").val("Stop");
+				}
+				else
+				{
+					//Send stop CMD
+					sendCMD("PID_Running","0")
+					$("#btnStartStop").removeClass("btn-danger").addClass("btn-success");
+					$("#btnStartStop").val("Start");
+				}
+            });
+
+			$("#current-temp-div").click(function () {
+				sendCMD("Read_temp","1")
+			});
+			$("#set-point-div").click(function () {
+				showSendCMDDialog("SetPoint",$("#set-point").val())
+			});
+			$("#btnP").click(function () {
+				showSendCMDDialog("P",$("#btnP").val())
+			});
+			$("#btnI").click(function () {
+				showSendCMDDialog("I",$("#btnI").val())
+			});
+			$("#btnD").click(function () {
+				showSendCMDDialog("D",$("#btnD").val())
+			});
+
+			getHistory();
+			
 			$("<div id='tooltip'></div>").css({
                 position: "absolute",
                 display: "none",
@@ -195,7 +245,6 @@
 			
 			$("#graphDiv").bind("plothover", function (event, pos, item) {
                 if (item) {
-					console.log("hover");
                     var x = item.datapoint[0].toFixed(2),
                         y = item.datapoint[1].toFixed(2);
 
@@ -283,8 +332,8 @@
 				<div class="col-6 header-col">Set Point</div>
 			</div>
 			<div class="row">
-				<div class="col-6 temp-display" ><span id="current-temp" >-</span></div>
-				<div class="col-6 temp-display"><span id="set-point" >-</span></div>
+				<div id="current-temp-div"class="col-6 temp-display" ><span id="current-temp" >-</span></div>
+				<div id="set-point-div" class="col-6 temp-display"><span id="set-point" >-</span></div>
 			</div>
 			<div class="row">
 				<div class="col-6 date-display" ><span id="current-temp-date" >yyyy-MM-dd HH:mm:ss</span></div>
@@ -352,7 +401,7 @@
 			</div>
 		  </footer>
 
-		  
+		 
 </body>
 </html>
 
