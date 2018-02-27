@@ -104,6 +104,9 @@ def callback(topic, msg):
         elif target == "Read_temp":
             if int(message) > 0 :
                 publish_temp()
+        elif target == "get_ip":
+                if int(message) > 0 :
+                publish_ip()
         elif target == "SetPoint":
             if float(message) > 0 :
                 pid.set_point = float(message)
@@ -259,6 +262,7 @@ def stopPID():
         pwm_t_off = 0
         PID_RUNNING = False   
         setRelay(0)
+        publish_pid()
 
 
 connect_and_subscribe()
