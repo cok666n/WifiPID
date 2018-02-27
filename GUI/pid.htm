@@ -71,7 +71,16 @@
 				$("#set-point-date").html(dateString);
 			}
 			else if (subject == "PID_Running") {
-				$("#pid-running").html(receivedData);
+				if(receivedData == "True")
+				{
+					$("#pid-running").addClass("circle-filled-green");
+				}
+				else
+				{
+					$("#pid-running").removeClass("circle-filled-green");
+				}
+
+
 				$("#pid-running-date").html(dateString);
 				
 				if( receivedData =="True" && $("#btnStartStop").hasClass("btn-success"))
@@ -90,11 +99,27 @@
 				$("#pid-pwm-date").html(dateString);
 			}
 			else if (subject == "Relay") { //Todo change to heat and cool on the FW
-				$("#pid-heating").html(receivedData);
+				if(receivedData == "1")
+				{
+					$("#pid-heating").addClass("circle-filled-red");
+				}
+				else
+				{
+					$("#pid-heating").removeClass("circle-filled-red");
+				}
+
 				$("#pid-heating-date").html(dateString);
 			}
 			else if (subject == "Cooling") {
-				$("#pid-cooling").html(receivedData);
+				if(receivedData == 1)
+				{
+					$("#pid-cooling").addClass("circle-filled-blue");
+				}
+				else
+				{
+					$("#pid-cooling").removeClass("circle-filled-blue");
+				}
+
 				$("#pid-cooling-date").html(dateString);
 			}
 			else if (subject == "P") {
@@ -105,6 +130,10 @@
 			}
 			else if (subject == "D") {
 				$("#btnD").val(receivedData);
+			}
+			if (subject == "IP") {
+				$("#online-led").removeClass("circle-filled-red").addClass("circle-filled-green");
+				$("#currentIP").html(receivedData);
 			}
         }
 
@@ -312,18 +341,68 @@
 		text-align: center;
 	}
 
+	.circle {
+		border: 2px solid #666666;
+		border-radius: 50%;
+		-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
+		filter: alpha(opacity=60);
+		opacity: 0.8;
+	
+		-webkit-box-shadow: 0 0 1px 0px rgb( 255, 255, 255);
+		box-shadow: 0 0 1px 0px rgb( 255, 255, 255);
+		width: 25px;
+		height: 25px;
+		z-index: 86;
+	
+		-webkit-transition: background-color .5s ease-in-out;
+		-moz-transition: background-color .5s ease-in-out;
+		-o-transition: background-color .5s ease-in-out;
+		-ms-transition: background-color .5s ease-in-out;
+		transition: background-color .5s ease-in-out;
+		display: inline-block;
+	}
+
+	.circle-small {
+		width: 16px;
+		height: 16px;
+	}
+	
+	.circle-filled-red {
+		background-color:red;
+	}
+	.circle-filled-green {
+		background-color:chartreuse;
+	}
+	.circle-filled-blue {
+		background-color:cornflowerblue;
+	}
     </style>
 </head>
 <body class="">
-		<main>
-	<form id="form1" runat="server" >
-		<nav class="navbar navbar-dark bg-primary ">
-			<a class="navbar-brand tex" href="#">
+	
+		<nav class="navbar navbar-expand-lg navbar-dark bg-primary ">
+			<a class="navbar-brand" href="#">
 			  <img src="icon.png" width="30" height="30" class="d-inline-block align-top" alt="">
 			  WifiPID
 			</a>
+			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+					<span class="navbar-toggler-icon"></span>
+				  </button>
+			<div class="collapse navbar-collapse " id="navbarSupportedContent">
+					<ul class="navbar-nav ml-auto ">			
+						<li>
+							<span>Online: </span>&nbsp
+							<div id="online-led" class="circle circle-small circle-filled-red"></div>&nbsp&nbsp
+						</li>
+						<li>
+							<span>Current IP: </span>&nbsp
+							<span id="currentIP"></span>&nbsp		
+						</li>  
+					</ul>
+				  </div>
 		  </nav>
-		<div class="container con-section  border border-secondary rounded">
+		  <form id="form1" >
+		  <div class="container con-section  border border-secondary rounded">
 			<div class="row bg-primary">
 				<div class="col-12 section-col">Status</div>
 			</div>
@@ -346,10 +425,10 @@
 					<div class="col-3 header-col">Cooling</div>
 			</div>
 			<div class="row">
-					<div class="col-3 status"><span id="pid-running">-</span></div>
+					<div class="col-3 status"><span>&nbsp<div id="pid-running" class="circle"></div></span></div>
 					<div class="col-3 status"><span id="pid-pwm">-</span>%</div>
-					<div class="col-3 status"><span id="pid-heating" >-</span></div>
-					<div class="col-3 status"><span id="pid-cooling" >-</span></div>
+					<div class="col-3 status"><span>&nbsp<div id="pid-heating" class="circle"></div></span></div>
+					<div class="col-3 status"><span>&nbsp<div id="pid-cooling" class="circle"></div></span></div>
 			</div>
 			<div class="row">
 				<div class="col-3 date-display d-none d-sm-block"><span id="pid-running-date">yyyy-MM-dd HH:mm:ss</span></div>
@@ -390,8 +469,7 @@
 		</div>
 	</div>
 	</form>
-	</main>
-    <footer class="footer">
+
 			<div class="container">
 				<div class="row">
 					<div class="col-12" id="footer-row">
@@ -399,7 +477,7 @@
 			</div>
 			</div>
 			</div>
-		  </footer>
+
 
 		 
 </body>
