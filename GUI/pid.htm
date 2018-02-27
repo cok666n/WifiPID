@@ -150,13 +150,16 @@
 
 		function showSendCMDDialog(cmd, currentvalue)
 		{
-			bootbox.prompt({title: "Enter new value ",
-			inputType: 'number', 
-			size: "small",
-			callback: function(result){ 
-				sendCMD(cmd,result);
-			 }
-			})
+			bootbox.prompt({
+				title: "Enter new value ",
+				value: currentvalue,
+				inputType: 'number', 
+				size: "small",
+				callback: function(result){ 
+					if(result != null)
+					sendCMD(cmd,result);
+			 	}
+				})
 			
 		}
 
@@ -250,7 +253,7 @@
 				sendCMD("Read_temp","1")
 			});
 			$("#set-point-div").click(function () {
-				showSendCMDDialog("SetPoint",$("#set-point").val())
+				showSendCMDDialog("SetPoint",$("#set-point").html())
 			});
 			$("#btnP").click(function () {
 				showSendCMDDialog("P",$("#btnP").val())
