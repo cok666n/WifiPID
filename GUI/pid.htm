@@ -1,96 +1,94 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
+
 <head runat="server">
 	<meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
- 	<link rel="shortcut icon" href="webIcon.ico" />
-	<link rel="stylesheet" href="css/bootstrap.min.css">
-    <title>WifiPID</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
-    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="shortcut icon" href="webIcon.ico" />
+	<link rel="stylesheet" href="./css/bootstrap.min.css">
+	<title>WifiPID</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+	 crossorigin="anonymous"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" type="text/javascript"></script>
-	<script type="text/javascript" src="JS/jquery.flot.min.js"></script>
-    <script type="text/javascript" src="JS/jquery.flot.time.min.js"></script>
-    <script type="text/javascript" src="JS/jquery.flot.navigate.min.js"></script>
-	<script type="text/javascript" src="JS/jquery.flot.resize.min.js"></script>
-	<script type="text/javascript" src="JS/moment.min.js"></script>
-	<script type="text/javascript" src="JS/bootbox.js"></script>
-	<script src="config.cloudmqtt.js"></script>
+	<script type="text/javascript" src="./JS/jquery.flot.min.js"></script>
+	<script type="text/javascript" src="./JS/jquery.flot.time.min.js"></script>
+	<script type="text/javascript" src="./JS/jquery.flot.navigate.min.js"></script>
+	<script type="text/javascript" src="./JS/jquery.flot.resize.min.js"></script>
+	<script type="text/javascript" src="./JS/moment.min.js"></script>
+	<script type="text/javascript" src="./JS/bootbox.js"></script>
+	<script src="./config.js"></script>
 	<script type="text/javascript">
 		//var wemosID = "45bdf600"; //Todo: make configurable?
 		var wemosID = "10f91700";
-        var dataSet = [];
-        // Create a client instance
-        var clientID = "joey_PID_" + parseInt(Math.random() * 100, 10);
-        client = new Paho.MQTT.Client(CONFIG.mqttHost, Number(CONFIG.mqttPort), clientID);
-        console.log("clientID" + clientID );
+		var dataSet = [];
+		// Create a client instance
+		var clientID = "joey_PID_" + parseInt(Math.random() * 100, 10);
+		client = new Paho.MQTT.Client(CONFIG.mqttHost, Number(CONFIG.mqttPort), clientID);
+		console.log("clientID" + clientID);
 
-        // set callback handlers
-        client.onConnectionLost = onConnectionLost;
-        client.onMessageArrived = onMessageArrived;
+		// set callback handlers
+		client.onConnectionLost = onConnectionLost;
+		client.onMessageArrived = onMessageArrived;
 
-        // connect the client
-        client.connect({
-            userName: CONFIG.mqttUsername,
-            password: CONFIG.mqttPassword,
-            useSSL: true,
-            onSuccess: onConnect           
-        });
+		// connect the client
+		client.connect({
+			userName: CONFIG.mqttUsername,
+			password: CONFIG.mqttPassword,
+			useSSL: true,
+			onSuccess: onConnect
+		});
 
 
-        // called when the client connects
-        function onConnect() {
-            // Once a connection has been made, make a subscription and send a message.
-            console.log("onConnect");
-            client.subscribe("/" + wemosID + "/sts/#");
-			sendCMD("get_ip","1");
-        }
+		// called when the client connects
+		function onConnect() {
+			// Once a connection has been made, make a subscription and send a message.
+			console.log("onConnect");
+			client.subscribe("/" + wemosID + "/sts/#");
+			sendCMD("get_ip", "1");
+		}
 
-        // called when the client loses its connection
-        function onConnectionLost(responseObject) {
-            if (responseObject.errorCode !== 0) {
-                console.log("onConnectionLost:" + responseObject.errorMessage);
-            }
-        }
+		// called when the client loses its connection
+		function onConnectionLost(responseObject) {
+			if (responseObject.errorCode !== 0) {
+				console.log("onConnectionLost:" + responseObject.errorMessage);
+			}
+		}
 
-        // called when a message arrives
-        function onMessageArrived(message) {
+		// called when a message arrives
+		function onMessageArrived(message) {
 			var dateString = moment(new Date()).format('YYYY-MM-DD HH:mm:ss')
-            console.log("onMessageArrived: From: " + message.destinationName + " Message: " + message.payloadString);
-            var receivedData = message.payloadString;
+			console.log("onMessageArrived: From: " + message.destinationName + " Message: " + message.payloadString);
+			var receivedData = message.payloadString;
 
 			/*Subjects are /machine/sts/VAR */
 			var subject = message.destinationName.split('/')[3]
 
-            if (subject == "Temp") {
+			if (subject == "Temp") {
 				$("#current-temp").html(receivedData);
 				$("#current-temp-date").html(dateString);
-				getHistory();
+				getHistory($("#historyHrsSelect").val()); //Todo: just add new data instead of fetch
 			}
 			else if (subject == "SetPoint") {
 				$("#set-point").html(receivedData);
 				$("#set-point-date").html(dateString);
 			}
 			else if (subject == "PID_Running") {
-				if(receivedData == "True")
-				{
+				if (receivedData == "True") {
 					$("#pid-running").addClass("circle-filled-green");
 				}
-				else
-				{
+				else {
 					$("#pid-running").removeClass("circle-filled-green");
 				}
 
 
 				$("#pid-running-date").html(dateString);
-				
-				if( receivedData =="True" && $("#btnStartStop").hasClass("btn-success"))
-				{
+
+				if (receivedData == "True" && $("#btnStartStop").hasClass("btn-success")) {
 					$("#btnStartStop").removeClass("btn-success").addClass("btn-danger");
 					$("#btnStartStop").val("Stop");
 				}
-				else if( receivedData =="False" && $("#btnStartStop").hasClass("btn-danger"))
-				{
+				else if (receivedData == "False" && $("#btnStartStop").hasClass("btn-danger")) {
 					$("#btnStartStop").removeClass("btn-danger").addClass("btn-success");
 					$("#btnStartStop").val("Start");
 				}
@@ -100,24 +98,20 @@
 				$("#pid-pwm-date").html(dateString);
 			}
 			else if (subject == "Relay") { //Todo change to heat and cool on the FW
-				if(receivedData == "1")
-				{
+				if (receivedData == "1") {
 					$("#pid-heating").addClass("circle-filled-red");
 				}
-				else
-				{
+				else {
 					$("#pid-heating").removeClass("circle-filled-red");
 				}
 
 				$("#pid-heating-date").html(dateString);
 			}
 			else if (subject == "Cooling") {
-				if(receivedData == 1)
-				{
+				if (receivedData == 1) {
 					$("#pid-cooling").addClass("circle-filled-blue");
 				}
-				else
-				{
+				else {
 					$("#pid-cooling").removeClass("circle-filled-blue");
 				}
 
@@ -136,357 +130,402 @@
 				$("#online-led").removeClass("circle-filled-red").addClass("circle-filled-green");
 				$("#currentIP").html(receivedData);
 			}
-        }
-
-		function sendCMD(topic,value)
-		{
-            //Envoi la request
-            var message = new Paho.MQTT.Message(value);
-            message.destinationName = "/" + wemosID + "/cmd/"+topic
-            
-			client.send(message);
-            
-			console.log("Sent request: " + message.payloadString + " to topic: " + message.destinationName);        
 		}
 
-		function showSendCMDDialog(cmd, currentvalue)
-		{
+		function sendCMD(topic, value) {
+			//Envoi la request
+			var message = new Paho.MQTT.Message(value);
+			message.destinationName = "/" + wemosID + "/cmd/" + topic
+
+			client.send(message);
+
+			console.log("Sent request: " + message.payloadString + " to topic: " + message.destinationName);
+		}
+
+		function showSendCMDDialog(cmd, currentvalue) {
 			bootbox.prompt({
 				title: "Enter new value ",
 				value: currentvalue,
-				inputType: 'number', 
+				inputType: 'number',
 				size: "small",
-				callback: function(result){ 
-					if(result != null)
-					sendCMD(cmd,result);
-			 	}
-				})
-			
+				callback: function (result) {
+					if (result != null)
+						sendCMD(cmd, result);
+				}
+			})
+
 		}
 
-		function getHistory(){
-			dataSet=[];
+		function getHistory(nbHours) {
+			dataSet = [];
 			//Get data from adafruit
-            $.ajax({
-                type: "get",
-                data: {"start_time":  moment().add(-1,'hours').format() },
-                url: ' https://io.adafruit.com/api/v2/joey_teknome/feeds/wemos-temperature/data',
-                contentType: "application/json; charset=utf-8",
-                dataType: "json",
-                success: function (result) {
+			$.ajax({
+				type: "get",
+				data: { "start_time": moment().add(nbHours * -1, 'hours').format() },
+				url: ' https://io.adafruit.com/api/v2/joey_teknome/feeds/wemos-temperature/data',
+				contentType: "application/json; charset=utf-8",
+				dataType: "json",
+				success: function (result) {
 					console.log("Adafruit, received " + result.length + " entries.");
 					result.forEach(element => {
-						var datapoint = [moment(element["created_at"]),JSON.parse(element["value"])];
-						dataSet.unshift(datapoint);												
-					});    
-				
-					if(dataSet.length == 0){
+						var datapoint = [moment(element["created_at"]), JSON.parse(element["value"])];
+						dataSet.unshift(datapoint);
+					});
+
+					if (dataSet.length == 0) {
 						$("#lblAucunDonnees").show();
 						$("#graphDiv").hide();
 					}
-					else{
+					else {
 						$("#lblAucunDonnees").hide();
 						$("#graphDiv").show();
-					
 
-				plot = $.plot("#graphDiv", [
+
+						plot = $.plot("#graphDiv", [
 							dataSet
-                        ], {
-                            xaxis: {
-                                mode: "time",
-                                timezone: "browser",
-                            },
-                            yaxis: {
-                                min: 0,
-                                max: 40,
-                            },
-                            series: {
-                                lines: {
-                                    show: true
-                                },
-                                points: {
-                                    show: false
-                                }
-                            },
-                            grid: {
-                                hoverable: true,
-                                clickable: true
-                            },
-                            zoom: {
-                                interactive: true
-                            },
-                            pan:
-                            {
-                                interactive: true
-                            }
+						], {
+								xaxis: {
+									mode: "time",
+									timezone: "browser",
+								},
+								yaxis: {
+									min: 0,
+									max: 40,
+								},
+								series: {
+									lines: {
+										show: true
+									},
+									points: {
+										show: false
+									}
+								},
+								grid: {
+									hoverable: true,
+									clickable: true
+								},
+								zoom: {
+									interactive: true
+								},
+								pan:
+									{
+										interactive: true
+									}
 
-						});
-					}	         
-                },
-                error: function () {
-                    console.log("Error getting adafruit dada")
-                }
-            });
+							});
+					}
+				},
+				error: function () {
+					console.log("Error getting adafruit dada")
+				}
+			});
 
 		}
-		
+
 		/*Doc ready*/
 		$(function () {
-			
+
 			$("#btnStartStop").click(function () {
-				if($("#btnStartStop").hasClass("btn-success"))
-				{
+				if ($("#btnStartStop").hasClass("btn-success")) {
 					//Send start CMD
-					sendCMD("PID_Running","1")
+					sendCMD("PID_Running", "1")
 					$("#btnStartStop").removeClass("btn-success").addClass("btn-danger");
 					$("#btnStartStop").val("Stop");
 				}
-				else
-				{
+				else {
 					//Send stop CMD
-					sendCMD("PID_Running","0")
+					sendCMD("PID_Running", "0")
 					$("#btnStartStop").removeClass("btn-danger").addClass("btn-success");
 					$("#btnStartStop").val("Start");
 				}
-            });
+			});
 
 			$("#current-temp-div").click(function () {
-				sendCMD("Read_temp","1")
+				sendCMD("Read_temp", "1")
 			});
 			$("#set-point-div").click(function () {
-				showSendCMDDialog("SetPoint",$("#set-point").html())
+				showSendCMDDialog("SetPoint", $("#set-point").html())
 			});
 			$("#btnP").click(function () {
-				showSendCMDDialog("P",$("#btnP").val())
+				showSendCMDDialog("P", $("#btnP").val())
 			});
 			$("#btnI").click(function () {
-				showSendCMDDialog("I",$("#btnI").val())
+				showSendCMDDialog("I", $("#btnI").val())
 			});
 			$("#btnD").click(function () {
-				showSendCMDDialog("D",$("#btnD").val())
+				showSendCMDDialog("D", $("#btnD").val())
 			});
 
-			getHistory();
-			
-			$("<div id='tooltip'></div>").css({
-                position: "absolute",
-                display: "none",
-                border: "1px solid #fdd",
-                padding: "2px",
-                opacity: 0.80
-			}).appendTo("body");
-			
-			$("#graphDiv").bind("plothover", function (event, pos, item) {
-                if (item) {
-                    var x = item.datapoint[0].toFixed(2),
-                        y = item.datapoint[1].toFixed(2);
+			$("#historyHrsSelect").change(function () {
+				getHistory($("#historyHrsSelect").val())
+			});
 
-                    $("#tooltip").html(moment(item.datapoint[0]).utcOffset(-5).format("YYYY-MM-DD HH:mm:ss") + ": " + y + "C")
-                        .css({ top: item.pageY + 5, left: item.pageX + 5 })
-                        .fadeIn(200);
-                } else {
-                    $("#tooltip").hide();
-                }
-            });
+			getHistory(1);
+
+			$("<div id='tooltip'></div>").css({
+				position: "absolute",
+				display: "none",
+				border: "1px solid #fdd",
+				padding: "2px",
+				opacity: 0.80
+			}).appendTo("body");
+
+			$("#graphDiv").bind("plothover", function (event, pos, item) {
+				if (item) {
+					var x = item.datapoint[0].toFixed(2),
+						y = item.datapoint[1].toFixed(2);
+
+					$("#tooltip").html(moment(item.datapoint[0]).utcOffset(-5).format("YYYY-MM-DD HH:mm:ss") + ": " + y + "C")
+						.css({ top: item.pageY + 5, left: item.pageX + 5 })
+						.fadeIn(200);
+				} else {
+					$("#tooltip").hide();
+				}
+			});
 		});
 
-    </script>
+	</script>
 
-    <style>
-.con-section{
-	margin-top: 15px;
-	margin-bottom: 15px;	
-}
-		.header-col{
+	<style>
+		.con-section {
+			margin-top: 15px;
+			margin-bottom: 15px;
+		}
+
+		.header-col {
 			/*background-color:gainsboro;*/
 			text-align: center;
 		}
-		.temp-display
-		{
+
+		.temp-display {
 			line-height: 100px;
 			font-size: xx-large;
 			font-weight: bold;
-			text-align: center;		
-			vertical-align: middle;		
+			text-align: center;
+			vertical-align: middle;
 		}
-		.date-display
-		{
+
+		.date-display {
 			font-size: small;
-			text-align: center;		
-			vertical-align: middle;		
+			text-align: center;
+			vertical-align: middle;
 		}
-		 .status
-		{
-			line-height: 60px !important; 
+
+		.status {
+			line-height: 60px !important;
 			font-size: large;
-			text-align: center;		
-			vertical-align: middle;	
+			text-align: center;
+			vertical-align: middle;
 		}
-		.settings
-		{
+
+		.settings {
 			font-size: large;
-			text-align: center;		
-			vertical-align: middle;	
+			text-align: center;
+			vertical-align: middle;
 			line-height: 40px;
 		}
 
 
-	.settings input{
-		width: 100%;
-	}
+		.settings input {
+			width: 100%;
+		}
 
 
-	#graphDiv{
-	height: 200px;
-	}
+		#graphDiv {
+			height: 200px;
+		}
 
-	#footer-row{
-		font-size: x-small;
-		text-align: center;
-	}
+		#footer-row {
+			font-size: x-small;
+			text-align: center;
+		}
 
-	.circle {
-		border: 2px solid #666666;
-		border-radius: 50%;
-		-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
-		filter: alpha(opacity=60);
-		opacity: 0.8;
-	
-		-webkit-box-shadow: 0 0 1px 0px rgb( 255, 255, 255);
-		box-shadow: 0 0 1px 0px rgb( 255, 255, 255);
-		width: 25px;
-		height: 25px;
-		z-index: 86;
-	
-		-webkit-transition: background-color .5s ease-in-out;
-		-moz-transition: background-color .5s ease-in-out;
-		-o-transition: background-color .5s ease-in-out;
-		-ms-transition: background-color .5s ease-in-out;
-		transition: background-color .5s ease-in-out;
-		display: inline-block;
-	}
+		.circle {
+			border: 2px solid #666666;
+			border-radius: 50%;
+			-ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
+			filter: alpha(opacity=60);
+			opacity: 0.8;
 
-	.circle-small {
-		width: 16px;
-		height: 16px;
-	}
-	
-	.circle-filled-red {
-		background-color:red;
-	}
-	.circle-filled-green {
-		background-color:chartreuse;
-	}
-	.circle-filled-blue {
-		background-color:cornflowerblue;
-	}
-    </style>
+			-webkit-box-shadow: 0 0 1px 0px rgb( 255, 255, 255);
+			box-shadow: 0 0 1px 0px rgb( 255, 255, 255);
+			width: 25px;
+			height: 25px;
+			z-index: 86;
+
+			-webkit-transition: background-color .5s ease-in-out;
+			-moz-transition: background-color .5s ease-in-out;
+			-o-transition: background-color .5s ease-in-out;
+			-ms-transition: background-color .5s ease-in-out;
+			transition: background-color .5s ease-in-out;
+			display: inline-block;
+		}
+
+		.circle-small {
+			width: 16px;
+			height: 16px;
+		}
+
+		.circle-filled-red {
+			background-color: red;
+		}
+
+		.circle-filled-green {
+			background-color: chartreuse;
+		}
+
+		.circle-filled-blue {
+			background-color: cornflowerblue;
+		}
+	</style>
 </head>
+
 <body class="">
-	
-		<nav class="navbar navbar-expand-lg navbar-dark bg-primary ">
-			<a class="navbar-brand" href="#">
-			  <img src="icon.png" width="30" height="30" class="d-inline-block align-top" alt="">
-			  WifiPID
-			</a>
-			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-					<span class="navbar-toggler-icon"></span>
-				  </button>
-			<div class="collapse navbar-collapse " id="navbarSupportedContent">
-					<ul class="navbar-nav ml-auto ">			
-						<li>
-							<span>Online: </span>&nbsp
-							<div id="online-led" class="circle circle-small circle-filled-red"></div>&nbsp&nbsp
-						</li>
-						<li>
-							<span>Current IP: </span>&nbsp
-							<span id="currentIP"></span>&nbsp		
-						</li>  
-					</ul>
-				  </div>
-		  </nav>
-		  <form id="form1" >
-		  <div class="container con-section  border border-secondary rounded">
-			<div class="row bg-primary">
-				<div class="col-12 section-col">Status</div>
-			</div>
-			<div class="row bg-secondary">
-				<div class="col-6 header-col">Current Temperature</div>
-				<div class="col-6 header-col">Set Point</div>
-			</div>
-			<div class="row">
-				<div id="current-temp-div"class="col-6 temp-display" ><span id="current-temp" >-</span></div>
-				<div id="set-point-div" class="col-6 temp-display"><span id="set-point" >-</span></div>
-			</div>
-			<div class="row">
-				<div class="col-6 date-display" ><span id="current-temp-date" >yyyy-MM-dd HH:mm:ss</span></div>
-				<div class="col-6 date-display"><span id="set-point-date" >yyyy-MM-dd HH:mm:ss</span></div>
-			</div>
-			<div class="row bg-secondary">
-					<div class="col-3 header-col">Running</div>
-					<div class="col-3 header-col">PWM</div>
-					<div class="col-3 header-col">Heating</div>
-					<div class="col-3 header-col">Cooling</div>
-			</div>
-			<div class="row">
-					<div class="col-3 status"><span>&nbsp<div id="pid-running" class="circle"></div></span></div>
-					<div class="col-3 status"><span id="pid-pwm">-</span>%</div>
-					<div class="col-3 status"><span>&nbsp<div id="pid-heating" class="circle"></div></span></div>
-					<div class="col-3 status"><span>&nbsp<div id="pid-cooling" class="circle"></div></span></div>
-			</div>
-			<div class="row">
-				<div class="col-3 date-display d-none d-sm-block"><span id="pid-running-date">yyyy-MM-dd HH:mm:ss</span></div>
-				<div class="col-3 date-display d-none d-sm-block"><span id="pid-pwm-date">yyyy-MM-dd HH:mm:ss</span></div>
-				<div class="col-3 date-display d-none d-sm-block"><span id="pid-heating-date">yyyy-MM-dd HH:mm:ss</span></div>
-				<div class="col-3 date-display d-none d-sm-block"><span id="pid-cooling-date">yyyy-MM-dd HH:mm:ss</span></div>
+	<nav class="navbar navbar-expand-lg navbar-dark bg-primary ">
+		<a class="navbar-brand" href="#">
+			<img src="icon.png" width="30" height="30" class="d-inline-block align-top" alt=""> WifiPID
+		</a>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+		 aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse " id="navbarSupportedContent">
+			<ul class="navbar-nav ml-auto ">
+				<li>
+					<span>Online: </span>&nbsp
+					<div id="online-led" class="circle circle-small circle-filled-red"></div>&nbsp&nbsp
+				</li>
+				<li>
+					<span>Current IP: </span>&nbsp
+					<span id="currentIP"></span>&nbsp
+				</li>
+			</ul>
 		</div>
+	</nav>
+	<div class="container con-section  border border-secondary rounded">
+		<div class="row bg-primary">
+			<div class="col-12 section-col">Status</div>
+		</div>
+		<div class="row bg-secondary">
+			<div class="col-6 header-col">Current Temperature</div>
+			<div class="col-6 header-col">Set Point</div>
+		</div>
+		<div class="row">
+			<div id="current-temp-div" class="col-6 temp-display">
+				<span id="current-temp">-</span>
 			</div>
-			<div class="container con-section  border border-secondary rounded">
-			<div class="row bg-primary">
-					<div class="col-12 section-col">Settings</div>
-			</div>
-			<div class="row bg-secondary border border-secondary ">
-				<div class="col-3 header-col">Start/Stop</div>
-				<div class="col-3 header-col">P</div>
-				<div class="col-3 header-col">I</div>
-				<div class="col-3 header-col">D</div>
-			</div>
-			<div class="row settings">
-					<div class="col-3 setting-cell"><input id="btnStartStop" type="button" class="btn btn-success" value="Start"></div>
-					<div class="col-3 setting-cell"><input type="button" id="btnP" class="btn" value="0"></div>
-					<div class="col-3 setting-cell"><input type="button" id="btnI" class="btn" value="0"></div>
-					<div class="col-3 setting-cell"><input type="button" id="btnD" class="btn" value="0"></div>
-					<br/>
+			<div id="set-point-div" class="col-6 temp-display">
+				<span id="set-point">-</span>
 			</div>
 		</div>
-		<div class="container con-section border border-secondary rounded">
-			<div class="row bg-primary">
-					<div class="col-12 section-col" title="1000 last points from AdafruitIO feed api">Stats</div>
-				</div>
-					<div class="row">
-					<div id="graphDivContainer" class="col-12">
-						<div id="graphDiv"></div>
-						<span ID="lblAucunDonnees"> Aucune donnée disponible</span>
-					</div>
-				</div>
+		<div class="row">
+			<div class="col-6 date-display">
+				<span id="current-temp-date">yyyy-MM-dd HH:mm:ss</span>
+			</div>
+			<div class="col-6 date-display">
+				<span id="set-point-date">yyyy-MM-dd HH:mm:ss</span>
+			</div>
+		</div>
+		<div class="row bg-secondary">
+			<div class="col-3 header-col">Running</div>
+			<div class="col-3 header-col">PWM</div>
+			<div class="col-3 header-col">Heating</div>
+			<div class="col-3 header-col">Cooling</div>
+		</div>
+		<div class="row">
+			<div class="col-3 status">
+				<span>&nbsp
+					<div id="pid-running" class="circle"></div>
+				</span>
+			</div>
+			<div class="col-3 status">
+				<span id="pid-pwm">-</span>%</div>
+			<div class="col-3 status">
+				<span>&nbsp
+					<div id="pid-heating" class="circle"></div>
+				</span>
+			</div>
+			<div class="col-3 status">
+				<span>&nbsp
+					<div id="pid-cooling" class="circle"></div>
+				</span>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-3 date-display d-none d-sm-block">
+				<span id="pid-running-date">yyyy-MM-dd HH:mm:ss</span>
+			</div>
+			<div class="col-3 date-display d-none d-sm-block">
+				<span id="pid-pwm-date">yyyy-MM-dd HH:mm:ss</span>
+			</div>
+			<div class="col-3 date-display d-none d-sm-block">
+				<span id="pid-heating-date">yyyy-MM-dd HH:mm:ss</span>
+			</div>
+			<div class="col-3 date-display d-none d-sm-block">
+				<span id="pid-cooling-date">yyyy-MM-dd HH:mm:ss</span>
 			</div>
 		</div>
 	</div>
-	</form>
-
-			<div class="container">
-				<div class="row">
-					<div class="col-12" id="footer-row">
-			  <span class="text-muted">Joey Caron - 2018</span>
+	<div class="container con-section  border border-secondary rounded">
+		<div class="row bg-primary">
+			<div class="col-12 section-col">Settings</div>
+		</div>
+		<div class="row bg-secondary border border-secondary ">
+			<div class="col-3 header-col">Start/Stop</div>
+			<div class="col-3 header-col">P</div>
+			<div class="col-3 header-col">I</div>
+			<div class="col-3 header-col">D</div>
+		</div>
+		<div class="row settings">
+			<div class="col-3 setting-cell">
+				<input id="btnStartStop" type="button" class="btn btn-success" value="Start">
 			</div>
+			<div class="col-3 setting-cell">
+				<input type="button" id="btnP" class="btn" value="0">
 			</div>
+			<div class="col-3 setting-cell">
+				<input type="button" id="btnI" class="btn" value="0">
 			</div>
+			<div class="col-3 setting-cell">
+				<input type="button" id="btnD" class="btn" value="0">
+			</div>
+			<br/>
+		</div>
+	</div>
+	<div class="container con-section border border-secondary rounded">
+		<div class="row bg-primary">
+			<div class="col-11 section-col" title="1000 last points from AdafruitIO feed api">Stats</div>
+		</div>
+		<div class="row">
+			<div id="graphDivContainer" class="col-12">
+				<div id="graphDiv"></div>
+				<span ID="lblAucunDonnees"> Aucune donnée disponible</span>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-12 ml-auto form-inline">
+				<label for="historyHrsSelect">Scroll-back:&nbsp</label>
+				<select id="historyHrsSelect" class="form-control form-control bg-light text-white">
+					<option value=1>1 hr</option>
+					<option value=2>2 hr</option>
+					<option value=4>4 hr</option>
+					<option value=8>8 hr</option>
+				</select>
+				<br>
+				<br>
+			</div>
+		</div>
+	</div>
+	</div>
+	</div>
 
-
-		 
+	<div class="container">
+		<div class="row">
+			<div class="col-12" id="footer-row">
+				<span class="text-muted">Joey Caron - 2018</span>
+			</div>
+		</div>
+	</div>
 </body>
+
 </html>
-
-
-
-

@@ -109,3 +109,5 @@ GUI/config\.js
 Firmware/config\.teknome\.py
 
 GUI/config\.cloudmqtt\.js
+
+GUI/config\.teknome\.js
