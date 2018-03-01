@@ -6,7 +6,8 @@ psk = b"yourpask"
 ssid2 = b"fallbackSSID"
 psk2 = b"fallbackPSW"
 
-# MQTT Settings
+# MQTT Settings (port 0 means default)
 broker = b"yourbroker"
+port = 0
 user = None
 password = None

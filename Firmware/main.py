@@ -137,8 +137,8 @@ def callback(topic, msg):
 # command and status, custom MQTT broker.
 def connect_and_subscribe():
     global client
-    print('Connecting to {} as user {} with password {}'.format(config.broker, config.user, config.password))
-    client = MQTTClient(client_id, config.broker, user=config.user, password=config.password)
+    print('Connecting to {}:{} as user {} with password {}'.format(config.broker, config.port, config.user, config.password))
+    client = MQTTClient(client_id, config.broker, port=config.port, user=config.user, password=config.password)
     client.set_callback(callback)
     if not client.connect(clean_session=False):
         print("Created new session to {}".format(config.broker))
