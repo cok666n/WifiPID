@@ -105,8 +105,12 @@ def callback(topic, msg):
             if int(message) > 0 :
                 publish_temp()
         elif target == "get_ip":
-                if int(message) > 0 :
+            if int(message) > 0 :
                 publish_ip()
+        elif target == "get_sts":
+            if int(message) > 0 :
+                publish_sts()
+                publish_pid()
         elif target == "SetPoint":
             if float(message) > 0 :
                 pid.set_point = float(message)
