@@ -86,9 +86,13 @@ def readTemp():
     ds.convert_temp()
     time.sleep_ms(750)
     for rom in roms:
-        retval = ds.read_temp(rom)
+        retval += [rom,ds.read_temp(rom)]
     #print("Current temp : { }",retval)
     return retval
+
+def readTempPID():
+    tempList = readTemp();
+    return tempList[0][1];
 		
 # MQTT Callback
 def callback(topic, msg):
@@ -120,6 +124,7 @@ def callback(topic, msg):
             if int(message) > 0 :
                 publish_sts()
                 publish_pid()
+                publish_ip()
         elif target == "SetPoint":
             if float(message) > 0 :
                 pid.set_point = float(message)
@@ -176,12 +181,15 @@ def publish_sts():
     publish_pid()
     
 def publish_temp():
-    topic = b"/" + machine_id + b"/sts/Temp"
+    topic = b"/" + machine_id + b"/sts/Temp/"
     ctemp = readTemp()
-    client.publish(topic,str(ctemp))
-    clientAda.publish(b"joey_teknome/feeds/wemos-temperature",str(ctemp))
+    for temp in ctemp:
+        client.publish(topic+temp[0],str(temp[1]))
+        print("PUB Temp, SensorID: {} Val: {} Topic: ".format(str(temp[0]),str(temp[1]),str(topic)))
+
+    #todo: remove those once we log our own data
+    clientAda.publish(b"joey_teknome/feeds/wemos-temperature",str(ctemp[0][1]))
     clientAda.publish(b"joey_teknome/feeds/set-point",str(pid.set_point))
-    print("PUB Temp: {} PUB SetPoint: {}".format(str(ctemp),str(pid.set_point)))
 
 def publish_relay():
     topic = b"/" + machine_id + b"/sts/RelayHeat"
@@ -284,7 +292,7 @@ def stopPID():
 connect_and_subscribe()
 connect_and_subscribe_adafruit()
 
-pid = PID(readTemp,pwm_setRate,P=54.0,I=60.0,D=15.0)
+pid = PID(readTempPID,pwm_setRate,P=54.0,I=60.0,D=15.0)
 
 publish_sts()
 
