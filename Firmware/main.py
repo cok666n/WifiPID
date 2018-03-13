@@ -36,7 +36,8 @@ D7.value(0)
 D8 = Pin(15, Pin.OUT)
 D8.value(0)
 
-RELAY = D1 # Heat relay is on D1 (PIN5)
+RELAY_COOL = D0
+RELAY_HEAT = D1 # Heat relay is on D1 (PIN5)
 LED = D4 # Onboard led is on D4 (PIN2)
 TIMER_INTERVAL=1000 #1000msec interval to count seconds.
 PUBLISH_INTERVAL=30
@@ -49,9 +50,14 @@ PID_SECONDSCOUNTER = 0
 SECONDSCOUNTER = 0
 
 
-def setRelay(valueonoff):
-    if RELAY.value() != valueonoff :
-        RELAY.value(valueonoff)
+def setRelayHeat(valueonoff):
+    if RELAY_HEAT.value() != valueonoff :
+        RELAY_HEAT.value(valueonoff)
+        publish_relay()
+
+def setRelayCool(valueonoff):
+    if RELAY_COOL.value() != valueonoff :
+        RELAY_COOL.value(valueonoff)
         publish_relay()
 
 
@@ -92,9 +98,12 @@ def callback(topic, msg):
     print("Received MQTT Message for topic {} : {}".format(target,msg)) 
 
     try:       
-        if target == "Relay":
+        if target == "RelayHeat":
             value = 1 if int(msg) > 0 else 0
-            setRelay(value)
+            setRelayHeat(value)
+        if target == "RelayCool":
+            value = 1 if int(msg) > 0 else 0
+            setRelayCool(value)
         elif target == "Led":
             value = 1 if int(msg) > 0 else 0
             setLed(value)
@@ -175,9 +184,12 @@ def publish_temp():
     print("PUB Temp: {} PUB SetPoint: {}".format(str(ctemp),str(pid.set_point)))
 
 def publish_relay():
-    topic = b"/" + machine_id + b"/sts/Relay"
-    client.publish(topic, str(RELAY.value()))
-    print("PUB Relay: {}".format(str(RELAY.value())))
+    topic = b"/" + machine_id + b"/sts/RelayHeat"
+    client.publish(topic, str(RELAY_HEAT.value()))
+    print("PUB Relay Heat: {}".format(str(RELAY_HEAT.value())))
+    topic = b"/" + machine_id + b"/sts/RelayCool"
+    client.publish(topic, str(RELAY_COOL.value()))
+    print("PUB Relay Cool: {}".format(str(RELAY_COOL.value())))
 
 def publish_led():
     topic = b"/" + machine_id + b"/sts/Led"
@@ -245,12 +257,12 @@ def pwm_setRate(irate):
 def pwm_check(iSeconds):
     if (pwm_t_on >= 0):
         if iSeconds < pwm_t_on:
-            setRelay(1)
+            setRelayHeat(1)
         else:
-            setRelay(0)
+            setRelayHeat(0)
     else:
         if(Relay.value == 1):
-            setRelay(0)
+            setRelayHeat(0)
 
 def startPID():
     global PID_RUNNING,pwm_t_on,pwm_t_off
@@ -265,7 +277,7 @@ def stopPID():
         pwm_t_on = 0
         pwm_t_off = 0
         PID_RUNNING = False   
-        setRelay(0)
+        setRelayHeat(0)
         publish_pid()
 
 
