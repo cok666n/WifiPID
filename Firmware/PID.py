@@ -1,3 +1,4 @@
+#PID class from https://github.com/B3AU/micropython (slightly modified for my needs)
 __author__ = 'beau'
 class PID:
     """
@@ -54,7 +55,7 @@ class PID:
 
         self.output = self.P_value + self.I_value - self.D_value
 
-        if self.output<0:  #capped, on peut pas refroidir
+        if self.output<0:  #capped, cannot cool
             self.output = 0.0
         if self.output>100:
             self.output = 100.0
@@ -65,4 +66,4 @@ class PID:
         print("Output: "+str(self.output))
         print ()
 
-        self.output_fun(self.output/100.0)#retourne 0 a 1
+        self.output_fun(self.output/100.0)#returns 0 to 1
