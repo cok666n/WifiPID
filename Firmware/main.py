@@ -79,14 +79,15 @@ def readTemp():
 
     # scan for devices on the bus
     roms = ds.scan()
-    #print('found devices:', roms)
+    print('found devices:', roms)
 
     # loop and print all temperatures
     #print('temperatures:', end=' ')
     ds.convert_temp()
     time.sleep_ms(750)
+    retval=[]
     for rom in roms:
-        retval += [rom,ds.read_temp(rom)]
+        retval.append([binascii.hexlify(rom).decode(),ds.read_temp(rom)])
     #print("Current temp : { }",retval)
     return retval
 
@@ -164,13 +165,6 @@ def connect_and_subscribe():
         client.subscribe(topic)
         print("Subscribed to {}".format(topic))
 
-# Adafruit mqtt client for datalogging purposes
-def connect_and_subscribe_adafruit():
-    global clientAda
-    print('Connecting to Adafruit')
-    clientAda = MQTTClient(machine_id, "io.adafruit.com", user="joey_teknome", password="f513cbf5a4d643a09114c959980f1d67")  
-    clientAda.connect()
-    print("Connected to Adafruit IO")
 	
 def publish_sts():
     print("publish_sts")
@@ -184,12 +178,9 @@ def publish_temp():
     topic = b"/" + machine_id + b"/sts/Temp/"
     ctemp = readTemp()
     for temp in ctemp:
-        client.publish(topic+temp[0],str(temp[1]))
-        print("PUB Temp, SensorID: {} Val: {} Topic: ".format(str(temp[0]),str(temp[1]),str(topic)))
+        client.publish(topic+str(temp[0]),str(temp[1]))
+        print("PUB Temp, SensorID: {} Val: {} Topic: {}".format(str(temp[0]),str(temp[1]),str(topic)))
 
-    #todo: remove those once we log our own data
-    clientAda.publish(b"joey_teknome/feeds/wemos-temperature",str(ctemp[0][1]))
-    clientAda.publish(b"joey_teknome/feeds/set-point",str(pid.set_point))
 
 def publish_relay():
     topic = b"/" + machine_id + b"/sts/RelayHeat"
@@ -224,7 +215,6 @@ def publish_pid():
     client.publish(topic, str(pid.Kd))
     topic = b"/" + machine_id + b"/sts/PID_Output"
     client.publish(topic, str(pid.output))
-    clientAda.publish(b"joey_teknome/feeds/pwm-output",str(pid.output))
     topic = b"/" + machine_id + b"/sts/SetPoint"
     client.publish(topic, str(pid.set_point))
     topic = b"/" + machine_id + b"/sts/PID_Running"
@@ -290,7 +280,6 @@ def stopPID():
 
 
 connect_and_subscribe()
-connect_and_subscribe_adafruit()
 
 pid = PID(readTempPID,pwm_setRate,P=54.0,I=60.0,D=15.0)
 
@@ -306,4 +295,4 @@ while 1:
 
 
 client.disconnect()
-clientAda.disconnect()
+
