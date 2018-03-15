@@ -21,6 +21,7 @@
 	<script type="text/javascript">
 		//var wemosID = "45bdf600"; //Todo: make configurable?
 		var wemosID = "10f91700";
+		//var wemosID="d29d1000"
 		var dataSet = [];
 		// Create a client instance
 		var clientID = "joey_PID_" + parseInt(Math.random() * 100, 10);
@@ -97,8 +98,8 @@
 				$("#pid-pwm").html(receivedData);
 				$("#pid-pwm-date").html(dateString);
 			}
-			else if (subject == "Relay") { //Todo change to heat and cool on the FW
-				if (receivedData == "1") {
+			else if (subject == "RelayHeat") { 
+			if (receivedData == "1") {
 					$("#pid-heating").addClass("circle-filled-red");
 				}
 				else {
@@ -107,7 +108,7 @@
 
 				$("#pid-heating-date").html(dateString);
 			}
-			else if (subject == "Cooling") {
+			else if (subject == "RelayCool") {
 				if (receivedData == 1) {
 					$("#pid-cooling").addClass("circle-filled-blue");
 				}
