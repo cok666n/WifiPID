@@ -162,17 +162,19 @@
 			$.ajax({
 				type: "get",
 				data: { "db": "mydb",
-						 "q": "SELECT * from Temperature where time > now() - " + nbHours +"h"//
+						 "q": "SELECT * from Temperature where time > now() - " + nbHours +"h and \"DeviceID\"='"+wemosID+"' "//and \"SensorID\"='28ff2def241703e5'"//
 						},
 				url: 'http://192.168.0.2:8086/query?pretty=true',
 				contentType: "application/json; charset=utf-8",
 				dataType: "json",
 				success: function (result) {
+					if(result.results[0].series != undefined){
 					console.log("Influx, received " + result.results[0].series[0].values.length + " entries.");
 					result.results[0].series[0].values.forEach(element => {
 						var datapoint = [moment(element[0]), element[3]];
 						dataSet.unshift(datapoint);
-					});
+						});
+					}
 
 					if (dataSet.length == 0) {
 						$("#lblAucunDonnees").show();
