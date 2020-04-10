@@ -158,17 +158,19 @@
 
 		function getHistory(nbHours) {
 			dataSet = [];
-			//Get data from adafruit
+			//Get data from influx (beta)
 			$.ajax({
 				type: "get",
-				data: { "start_time": moment().add(nbHours * -1, 'hours').format() },
-				url: ' https://io.adafruit.com/api/v2/joey_teknome/feeds/wemos-temperature/data',
+				data: { "db": "mydb",
+						 "q": "SELECT * from Temperature where time > now() - " + nbHours +"h"//
+						},
+				url: 'http://192.168.0.2:8086/query?pretty=true',
 				contentType: "application/json; charset=utf-8",
 				dataType: "json",
 				success: function (result) {
-					console.log("Adafruit, received " + result.length + " entries.");
-					result.forEach(element => {
-						var datapoint = [moment(element["created_at"]), JSON.parse(element["value"])];
+					console.log("Influx, received " + result.results[0].series[0].values.length + " entries.");
+					result.results[0].series[0].values.forEach(element => {
+						var datapoint = [moment(element[0]), element[3]];
 						dataSet.unshift(datapoint);
 					});
 
@@ -510,6 +512,8 @@
 					<option value=2>2 hr</option>
 					<option value=4>4 hr</option>
 					<option value=8>8 hr</option>
+					<option value=12>12 hr</option>
+					<option value=24>24 hr</option>
 				</select>
 				<br>
 				<br>
