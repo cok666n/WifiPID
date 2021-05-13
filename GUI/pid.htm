@@ -22,6 +22,11 @@
 		var wemosID = "10f91700";
 		//var wemosID="d29d1000"
 		var dataSet = [];
+		
+		// stores the relay state
+		var relayCool = 0;
+		var relayHeat = 0;
+
 		// Create a client instance
 		var clientID = "joey_PID_" + parseInt(Math.random() * 100, 10);
 		client = new Paho.Client(CONFIG.mqttHost, Number(CONFIG.mqttPort), clientID);
@@ -100,9 +105,11 @@
 			else if (subject == "RelayHeat") { 
 			if (receivedData == "1") {
 					$("#pid-heating").addClass("circle-filled-red");
+					relayHeat = 1;
 				}
 				else {
 					$("#pid-heating").removeClass("circle-filled-red");
+					relayHeat = 0;
 				}
 
 				$("#pid-heating-date").html(dateString);
@@ -110,9 +117,11 @@
 			else if (subject == "RelayCool") {
 				if (receivedData == 1) {
 					$("#pid-cooling").addClass("circle-filled-blue");
+					relayCool = 1;
 				}
 				else {
 					$("#pid-cooling").removeClass("circle-filled-blue");
+					relayCool = 0;
 				}
 
 				$("#pid-cooling-date").html(dateString);
@@ -170,7 +179,12 @@
 				success: function (result) {
 					if(result.results[0].series != undefined){
 					console.log("Influx, received " + result.results[0].series[0].values.length + " entries.");
+
+					miny = 100;
+					maxy = 0;
 					result.results[0].series[0].values.forEach(element => {
+						miny = Math.min(miny,element[3])
+						maxy = Math.max(maxy,element[3])
 						var datapoint = [moment(element[0]), element[3]];
 						dataSet.unshift(datapoint);
 						});
@@ -193,8 +207,8 @@
 									timezone: "browser",
 								},
 								yaxis: {
-									min: 0,
-									max: 100,
+									min: miny,
+									max: maxy,
 								},
 								series: {
 									lines: {
@@ -262,6 +276,28 @@
 
 			$("#historyHrsSelect").change(function () {
 				getHistory($("#historyHrsSelect").val())
+			});
+
+			$("#pid-cooling").click(function () {
+				if(relayCool == 1){
+					sendCMD("RelayCool", "0")
+					relayCool=0;
+				}
+				else{
+					sendCMD("RelayCool", "1")
+					relayCool=1;
+				}
+			});
+
+			$("#pid-heating").click(function () {
+				if(relayHeat == 1){
+					sendCMD("RelayHeat", "0")
+					relayHeat=0;
+				}
+				else{
+					sendCMD("RelayHeat", "1")
+					relayHeat=1;
+				}
 			});
 
 			getHistory(1);
